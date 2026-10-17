@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TLPH MLBB Squad Match Planner</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            cyan: '#00f2fe',
+                            magenta: '#f72585',
+                            gold: '#ffd700',
+                            purple: '#7209b7',
+                            dark: '#0a0a16',
+                            card: '#121228'
+                        }
+                    },
+                    fontFamily: {
+                        rajdhani: ['Rajdhani', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0a0a16;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+
+        .heading-font {
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        /* Glassmorphism effect */
+        .glass-panel {
+            background: rgba(18, 18, 40, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glass-panel-glow {
+            box-shadow: 0 0 25px rgba(0, 242, 254, 0.15);
+            border: 1px solid rgba(0, 242, 254, 0.25);
+        }
+
+        /* Animated glowing borders */
+        @keyframes pulse-border {
+            0%, 100% { border-color: rgba(0, 242, 254, 0.6); box-shadow: 0 0 15px rgba(0, 242, 254, 0.3); }
+            50% { border-color: rgba(247, 37, 133, 0.6); box-shadow: 0 0 20px rgba(247, 37, 133, 0.4); }
+        }
+
+        .glow-active {
+            animation: pulse-border 3s infinite ease-in-out;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a16;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f1f3d;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00f2fe;
+        }
+
+        /* Neon Glow Utility Classes */
+        .text-glow-cyan { text-shadow: 0 0 10px rgba(0, 242, 254, 0.7); }
+        .text-glow-magenta { text-shadow: 0 0 10px rgba(247, 37, 133, 0.7); }
+        .text-glow-gold { text-shadow: 0 0 10px rgba(255, 215, 0, 0.7); }
+
+        /* Custom Input styling */
+        input[type="date"], input[type="time"], select, input[type="text"] {
+            color-scheme: dark;
+        }
+    </style>
+</head>
+<body class="min-h-screen relative flex flex-col justify-between selection:bg-brand-cyan selection:text-black">
+
+    <!-- Interactive Canvas Background -->
+    <canvas id="bg-canvas" class="fixed top-0 left-0 w-full h-full -z-10 pointer-events-none"></canvas>
+
+    <!-- Main Container -->
+    <div class="container mx-auto px-4 py-8 max-w-5xl relative z-10 flex-grow">
+
+        <!-- HEADER SECTION -->
+        <header class="text-center mb-10 flex flex-col items-center">
+            <!-- TLPH Emblem / Badge -->
+            <div class="relative group cursor-pointer mb-4" id="logo-badge">
+                <div class="absolute -inset-1 bg-gradient-to-r from-brand-cyan via-brand-purple to-brand-magenta rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-spin" style="animation-duration: 8s;"></div>
+                <div class="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-slate-900 border-2 border-brand-cyan flex flex-col items-center justify-center p-2 shadow-2xl">
+                    <i class="fa-solid font-bold text-3xl sm:text-4xl text-transparent bg-clip-text bg-gradient-to-tr from-brand-cyan via-white to-brand-magenta fa-shield-halved"></i>
+                    <span class="heading-font font-extrabold text-xl sm:text-2xl text-white tracking-widest mt-1">TLPH</span>
+                </div>
+            </div>
+
+            <span class="px-3 py-1 text-xs font-semibold uppercase tracking-widest rounded-full bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/30 mb-2">
+                🇵🇭 Philippine MLBB Squad
+            </span>
+
+            <h1 class="heading-font text-3xl sm:text-5xl font-extrabold tracking-wider text-white mb-2 uppercase">
+                TLPH Squad <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-cyan via-purple-400 to-brand-magenta">Match Coordinator</span>
+            </h1>
+            <p class="text-slate-400 text-sm sm:text-base max-w-lg">
+                Set our game schedule, select squad options per lane, and get ready to dominate!
+            </p>
+        </header>
+
+        <!-- TOP GRID: COUNTDOWN & SCHEDULE FORM -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+            
+            <!-- LEFT: Schedule Configurator (5 cols) -->
+            <div class="lg:col-span-5 glass-panel rounded-2xl p-6 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center gap-2 mb-4 pb-3 border-b border-white/10">
+                        <i class="fa-solid fa-calendar-plus text-brand-cyan text-lg"></i>
+                        <h2 class="heading-font text-xl font-bold uppercase tracking-wider text-white">Schedule Session</h2>
+                    </div>
+
+                    <form id="schedule-form" class="space-y-4">
+                        <!-- Date Picker -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                                Match Date
+                            </label>
+                            <div class="relative">
+                                <input type="date" id="match-date" required class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-brand-cyan transition font-sans">
+                            </div>
+                        </div>
+
+                        <!-- Time Picker -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                                Time (PHT - Philippine Time)
+                            </label>
+                            <div class="relative">
+                                <input type="time" id="match-time" required class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-brand-cyan transition font-sans">
+                            </div>
+                        </div>
+
+                        <!-- Game Mode Selector -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                                Game Mode
+                            </label>
+                            <select id="match-mode" class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-brand-cyan transition font-sans">
+                                <option value="Ranked Game 🏆">Ranked Game 🏆</option>
+                                <option value="Classic Match ⚔️">Classic Match ⚔️</option>
+                                <option value="Tournament / Scrim 💥">Tournament / Scrim 💥</option>
+                                <option value="Custom 5v5 🛡️">Custom 5v5 🛡️</option>
+                                <option value="Brawl Fun Night 🎮">Brawl Fun Night 🎮</option>
+                            </select>
+                        </div>
+
+                        <!-- Session Notes -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                                Session Goal / Note
+                            </label>
+                            <input type="text" id="match-notes" placeholder="e.g. Mythic star push! Be online early!" class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-brand-cyan transition font-sans text-sm">
+                        </div>
+
+                        <!-- Submit CTA Button -->
+                        <button type="submit" id="btn-schedule" class="w-full mt-2 relative group overflow-hidden rounded-xl p-0.5 font-bold uppercase tracking-wider heading-font text-lg shadow-lg">
+                            <span class="absolute inset-0 bg-gradient-to-r from-brand-cyan via-brand-purple to-brand-magenta transition-all duration-300 group-hover:opacity-90"></span>
+                            <span class="relative block px-6 py-3 rounded-[10px] bg-slate-950/40 text-white group-hover:bg-transparent transition-colors">
+                                <i class="fa-solid fa-bolt mr-2 text-brand-gold"></i> Lock Match Schedule
+                            </span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- RIGHT: Countdown Banner & Quick Actions (7 cols) -->
+            <div class="lg:col-span-7 glass-panel glass-panel-glow rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden">
+                <!-- Decorative Glow Background Behind Timer -->
+                <div class="absolute -top-12 -right-12 w-48 h-48 bg-brand-cyan/20 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute -bottom-12 -left-12 w-48 h-48 bg-brand-magenta/20 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div>
+                    <!-- Header status banner -->
+                    <div class="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-brand-cyan animate-ping"></span>
+                            <span id="status-badge" class="px-3 py-1 rounded-full text-xs font-semibold tracking-wider bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/40">
+                                NEXT GAME SESSION
+                            </span>
+                        </div>
+                        <span id="display-mode" class="heading-font font-bold text-slate-300 text-lg">Ranked Game 🏆</span>
+                    </div>
+
+                    <!-- Date display text -->
+                    <div class="text-center mb-6">
+                        <div id="display-full-date" class="text-xl sm:text-2xl font-bold text-white mb-1">
+                            -- --, ---- @ --:-- -- PHT
+                        </div>
+                        <p id="display-notes" class="text-xs sm:text-sm text-brand-gold italic">
+                            "Road to Mythical Immortal!"
+                        </p>
+                    </div>
+
+                    <!-- Realtime Countdown Grid -->
+                    <div class="grid grid-cols-4 gap-2 sm:gap-4 my-4">
+                        <!-- Days -->
+                        <div class="bg-slate-950/80 rounded-xl p-3 sm:p-4 text-center border border-white/5 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 right-0 h-1 bg-brand-cyan"></div>
+                            <span id="timer-days" class="heading-font text-3xl sm:text-5xl font-extrabold text-white block text-glow-cyan">00</span>
+                            <span class="text-[10px] sm:text-xs uppercase tracking-widest text-slate-400 font-semibold">Days</span>
+                        </div>
+                        <!-- Hours -->
+                        <div class="bg-slate-950/80 rounded-xl p-3 sm:p-4 text-center border border-white/5 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 right-0 h-1 bg-brand-cyan"></div>
+                            <span id="timer-hours" class="heading-font text-3xl sm:text-5xl font-extrabold text-white block text-glow-cyan">00</span>
+                            <span class="text-[10px] sm:text-xs uppercase tracking-widest text-slate-400 font-semibold">Hours</span>
+                        </div>
+                        <!-- Minutes -->
+                        <div class="bg-slate-950/80 rounded-xl p-3 sm:p-4 text-center border border-white/5 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 right-0 h-1 bg-brand-magenta"></div>
+                            <span id="timer-minutes" class="heading-font text-3xl sm:text-5xl font-extrabold text-white block text-glow-magenta">00</span>
+                            <span class="text-[10px] sm:text-xs uppercase tracking-widest text-slate-400 font-semibold">Mins</span>
+                        </div>
+                        <!-- Seconds -->
+                        <div class="bg-slate-950/80 rounded-xl p-3 sm:p-4 text-center border border-white/5 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 right-0 h-1 bg-brand-gold"></div>
+                            <span id="timer-seconds" class="heading-font text-3xl sm:text-5xl font-extrabold text-white block text-glow-gold">00</span>
+                            <span class="text-[10px] sm:text-xs uppercase tracking-widest text-slate-400 font-semibold">Secs</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Toolbar: Copy Invite & Add to Calendar -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6 pt-4 border-t border-white/10">
+                    <button id="btn-copy-invite" class="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-white py-2.5 px-4 rounded-xl text-sm font-semibold border border-white/10 hover:border-brand-cyan/50 transition duration-200">
+                        <i class="fa-solid fa-copy text-brand-cyan"></i> Copy Squad Invite
+                    </button>
+                    <a id="btn-gcal" target="_blank" href="#" class="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-white py-2.5 px-4 rounded-xl text-sm font-semibold border border-white/10 hover:border-brand-magenta/50 transition duration-200">
+                        <i class="fa-solid fa-calendar-day text-brand-magenta"></i> Add to Google Calendar
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- BOTTOM SECTION: 5-MAN LINEUP WITH PRESET SQUAD MEMBERS -->
+        <div class="glass-panel rounded-2xl p-6 mb-8">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-white/10 mb-6 gap-3">
+                <div>
+                    <h2 class="heading-font text-2xl font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                        <i class="fa-solid fa-users-line text-brand-gold"></i> TLPH Lineup & Roles
+                    </h2>
+                    <p class="text-xs text-slate-400">Select active players for each lane and set hero comfort picks</p>
+                </div>
+                <!-- Quick Readiness Summary -->
+                <div id="roster-readiness-badge" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-brand-gold/10 text-brand-gold border border-brand-gold/30">
+                    Squad Status: 5/5 Ready
+                </div>
+            </div>
+
+            <!-- 5 Lanes / Roles Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4" id="roster-container">
+                <!-- Role Cards generated dynamically -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="text-center py-6 border-t border-white/5 text-xs text-slate-500 relative z-10">
+        <div class="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p>© TLPH Mobile Legends Squad • Philippines 🇵🇭</p>
+            <p class="flex items-center gap-2">
+                <span>Audio Effects</span>
+                <button id="toggle-sound" class="text-slate-400 hover:text-brand-cyan transition">
+                    <i id="sound-icon" class="fa-solid fa-volume-high text-sm"></i>
+                </button>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Toast Notification Overlay -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none bg-slate-900 border border-brand-cyan text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3">
+        <i class="fa-solid fa-circle-check text-brand-cyan text-lg"></i>
+        <span id="toast-msg" class="text-sm font-semibold">Match schedule locked!</span>
+    </div>
+
+    <!-- JAVASCRIPT APP LOGIC -->
+    <script>
+        // --- 1. Audio Synthesis (Web Audio API) ---
+        let soundEnabled = true;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new AudioCtx();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.08);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'success') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.setValueAtTime(554.37, now + 0.1);
+                    osc.frequency.setValueAtTime(659.25, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } else if (type === 'toggle') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.linearRampToValueAtTime(500, now + 0.05);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                }
+            } catch (e) {
+                console.log('Audio init prevented', e);
+            }
+        }
+
+        // --- 2. Initial Preset Squad Roster Structure ---
+        const defaultRoles = [
+            { 
+                id: 'exp', 
+                title: 'EXP Lane', 
+                icon: 'fa-shield-halved', 
+                color: 'border-blue-500/40 text-blue-400', 
+                options: ['gab', 'xian'], 
+                selectedPlayer: 'gab', 
+                hero: 'Terizla / Yu Zhong', 
+                ready: true 
+            },
+            { 
+                id: 'mid', 
+                title: 'Mid Lane', 
+                icon: 'fa-wand-magic-sparkles', 
+                color: 'border-purple-500/40 text-purple-400', 
+                options: ['gab', 'norvy', 'iyah'], 
+                selectedPlayer: 'norvy', 
+                hero: 'Valentina / Vexana', 
+                ready: true 
+            },
+            { 
+                id: 'jungle', 
+                title: 'Jungle', 
+                icon: 'fa-dragon', 
+                color: 'border-red-500/40 text-red-400', 
+                options: ['kyle'], 
+                selectedPlayer: 'kyle', 
+                hero: 'Ling / Nolan / Fredrinn', 
+                ready: true 
+            },
+            { 
+                id: 'roam', 
+                title: 'Roam', 
+                icon: 'fa-crosshairs', 
+                color: 'border-emerald-500/40 text-emerald-400', 
+                options: ['xian', 'gab'], 
+                selectedPlayer: 'xian', 
+                hero: 'Tigreal / Mino / Angela', 
+                ready: true 
+            },
+            { 
+                id: 'gold', 
+                title: 'Gold Lane', 
+                icon: 'fa-coins', 
+                color: 'border-amber-500/40 text-amber-400', 
+                options: ['yohan'], 
+                selectedPlayer: 'yohan', 
+                hero: 'Claude / Harith / Moskov', 
+                ready: true 
+            }
+        ];
+
+        // Default match date: tomorrow at 8:00 PM PHT
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(20, 0, 0, 0);
+
+        let appState = {
+            targetDate: tomorrow,
+            mode: 'Ranked Game 🏆',
+            notes: 'Road to Mythical Immortal! Push Rank!',
+            roster: JSON.parse(localStorage.getItem('tlph_roster_v2')) || defaultRoles
+        };
+
+        // DOM Elements
+        const dateInput = document.getElementById('match-date');
+        const timeInput = document.getElementById('match-time');
+        const modeInput = document.getElementById('match-mode');
+        const notesInput = document.getElementById('match-notes');
+        const scheduleForm = document.getElementById('schedule-form');
+
+        const displayFullDate = document.getElementById('display-full-date');
+        const displayMode = document.getElementById('display-mode');
+        const displayNotes = document.getElementById('display-notes');
+        const statusBadge = document.getElementById('status-badge');
+
+        const daysEl = document.getElementById('timer-days');
+        const hoursEl = document.getElementById('timer-hours');
+        const minsEl = document.getElementById('timer-minutes');
+        const secsEl = document.getElementById('timer-seconds');
+
+        const rosterContainer = document.getElementById('roster-container');
+        const readinessBadge = document.getElementById('roster-readiness-badge');
+
+        // Set Default Inputs
+        function setFormDefaults() {
+            const year = appState.targetDate.getFullYear();
+            const month = String(appState.targetDate.getMonth() + 1).padStart(2, '0');
+            const day = String(appState.targetDate.getDate()).padStart(2, '0');
+            const hours = String(appState.targetDate.getHours()).padStart(2, '0');
+            const minutes = String(appState.targetDate.getMinutes()).padStart(2, '0');
+
+            dateInput.value = `${year}-${month}-${day}`;
+            timeInput.value = `${hours}:${minutes}`;
+            modeInput.value = appState.mode;
+            notesInput.value = appState.notes;
+        }
+
+        // --- 3. Roster Rendering Logic ---
+        function renderRoster() {
+            rosterContainer.innerHTML = '';
+            let readyCount = 0;
+
+            appState.roster.forEach((item, index) => {
+                if (item.ready) readyCount++;
+
+                const card = document.createElement('div');
+                card.className = `bg-slate-950/80 rounded-xl p-4 border ${item.ready ? 'border-brand-cyan/40 shadow-lg shadow-brand-cyan/5' : 'border-white/10'} flex flex-col justify-between transition-all duration-300`;
+                
+                // Build Player Dropdown / Single Badge
+                let playerSelectHtml = '';
+                if (item.options.length > 1) {
+                    const optionsList = item.options.map(opt => `<option value="${opt}" ${opt === item.selectedPlayer ? 'selected' : ''}>${opt}</option>`).join('');
+                    playerSelectHtml = `
+                        <select onchange="updatePlayerSelection(${index}, this.value)" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-sm font-bold text-brand-cyan focus:border-brand-cyan focus:outline-none capitalize">
+                            ${optionsList}
+                        </select>
+                    `;
+                } else {
+                    playerSelectHtml = `
+                        <div class="w-full bg-slate-900/60 border border-slate-800 rounded px-2.5 py-1 text-sm font-bold text-slate-300 capitalize flex items-center justify-between">
+                            <span>${item.options[0]}</span>
+                            <span class="text-[10px] text-slate-500 uppercase">Fixed</span>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/5">
+                            <span class="heading-font text-base font-bold uppercase tracking-wider flex items-center gap-2 ${item.color}">
+                                <i class="fa-solid ${item.icon}"></i> ${item.title}
+                            </span>
+                            <button onclick="togglePlayerReady(${index})" class="text-xs px-2.5 py-0.5 rounded-full font-semibold border transition ${item.ready ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-slate-800 text-slate-400 border-slate-700'}">
+                                ${item.ready ? '<i class="fa-solid fa-check mr-1"></i> READY' : 'NOT READY'}
+                            </button>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Assigned Player</label>
+                                ${playerSelectHtml}
+                            </div>
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Comfort Picks</label>
+                                <input type="text" value="${item.hero}" onchange="updateRosterHero(${index}, this.value)" placeholder="e.g. Ling, Tigreal" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-brand-gold focus:border-brand-gold focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+                `;
+                rosterContainer.appendChild(card);
+            });
+
+            // Update Readiness Summary Badge
+            readinessBadge.textContent = `Squad Readiness: ${readyCount}/5 Ready`;
+            if (readyCount === 5) {
+                readinessBadge.className = "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 animate-pulse";
+            } else {
+                readinessBadge.className = "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-brand-gold/10 text-brand-gold border border-brand-gold/30";
+            }
+
+            // Save to LocalStorage
+            localStorage.setItem('tlph_roster_v2', JSON.stringify(appState.roster));
+        }
+
+        window.togglePlayerReady = function(index) {
+            playSound('toggle');
+            appState.roster[index].ready = !appState.roster[index].ready;
+            renderRoster();
+        };
+
+        window.updatePlayerSelection = function(index, value) {
+            playSound('click');
+            appState.roster[index].selectedPlayer = value;
+            localStorage.setItem('tlph_roster_v2', JSON.stringify(appState.roster));
+        };
+
+        window.updateRosterHero = function(index, value) {
+            appState.roster[index].hero = value;
+            localStorage.setItem('tlph_roster_v2', JSON.stringify(appState.roster));
+        };
+
+        // --- 4. Countdown Timer Logic ---
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const distance = appState.targetDate.getTime() - now;
+
+            if (distance <= 0) {
+                daysEl.textContent = "00";
+                hoursEl.textContent = "00";
+                minsEl.textContent = "00";
+                secsEl.textContent = "00";
+
+                statusBadge.textContent = "IT'S GAME TIME! 🎮";
+                statusBadge.className = "px-3 py-1 rounded-full text-xs font-extrabold tracking-widest bg-brand-magenta text-white border border-brand-magenta animate-bounce";
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            daysEl.textContent = String(days).padStart(2, '0');
+            hoursEl.textContent = String(hours).padStart(2, '0');
+            minsEl.textContent = String(minutes).padStart(2, '0');
+            secsEl.textContent = String(seconds).padStart(2, '0');
+
+            statusBadge.textContent = "MATCH SCHEDULED";
+            statusBadge.className = "px-3 py-1 rounded-full text-xs font-semibold tracking-wider bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/40";
+        }
+
+        // --- 5. Form Submit Handler ---
+        scheduleForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            playSound('success');
+
+            const dateVal = dateInput.value;
+            const timeVal = timeInput.value;
+
+            if (!dateVal || !timeVal) return;
+
+            const newTarget = new Date(`${dateVal}T${timeVal}:00`);
+            appState.targetDate = newTarget;
+            appState.mode = modeInput.value;
+            appState.notes = notesInput.value || "Prepare for battle!";
+
+            updateDisplayHeader();
+            updateGoogleCalendarUrl();
+            showToast("🎮 TLPH Match schedule locked!");
+        });
+
+        function updateDisplayHeader() {
+            const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true };
+            const dateStr = appState.targetDate.toLocaleDateString('en-US', options);
+
+            displayFullDate.textContent = `${dateStr} PHT`;
+            displayMode.textContent = appState.mode;
+            displayNotes.textContent = `"${appState.notes}"`;
+
+            updateCountdown();
+        }
+
+        // --- 6. Google Calendar Generator ---
+        function updateGoogleCalendarUrl() {
+            const startTime = appState.targetDate.toISOString().replace(/-|:|\.\d\d\d/g, '');
+            const endTimeDate = new Date(appState.targetDate.getTime() + (2 * 60 * 60 * 1000));
+            const endTime = endTimeDate.toISOString().replace(/-|:|\.\d\d\d/g, '');
+
+            const title = encodeURIComponent(`🎮 TLPH MLBB Match: ${appState.mode}`);
+            const details = encodeURIComponent(`TLPH MLBB Squad Match!\n\nMode: ${appState.mode}\nNotes: ${appState.notes}\n\nLINEUP:\n` + appState.roster.map(r => `• ${r.title}: ${r.selectedPlayer} (${r.hero})`).join('\n'));
+            const location = encodeURIComponent(`Mobile Legends: Bang Bang`);
+
+            const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startTime}/${endTime}&details=${details}&location=${location}`;
+            
+            document.getElementById('btn-gcal').href = gcalUrl;
+        }
+
+        // --- 7. Copy Squad Invite Message ---
+        document.getElementById('btn-copy-invite').addEventListener('click', () => {
+            playSound('click');
+            const options = { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true };
+            const formattedDate = appState.targetDate.toLocaleDateString('en-US', options);
+
+            const rosterSummary = appState.roster.map(r => `• *${r.title}:* ${r.selectedPlayer.toUpperCase()} ${r.ready ? '✅' : '⏳'}`).join('\n');
+
+            const inviteMsg = `🛡️ *TLPH MLBB SQUAD MATCH NOTICE* 🛡️\n\n📅 *Date & Time:* ${formattedDate} PHT\n🎮 *Mode:* ${appState.mode}\n🎯 *Goal:* ${appState.notes}\n\n*ROSTER LINEUP:*\n${rosterSummary}\n\nBe online 5 minutes before game time! Let's get the win TLPH! 🔥`;
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(inviteMsg).then(() => {
+                    showToast("Squad invite copied to clipboard!");
+                }).catch(() => {
+                    fallbackCopy(inviteMsg);
+                });
+            } else {
+                fallbackCopy(inviteMsg);
+            }
+        });
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement("textarea");
+            textarea.value = text;
+            textarea.style.position = "fixed";
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textarea);
+            showToast("Squad invite copied to clipboard!");
+        }
+
+        // --- 8. Toast Helper ---
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // Sound Toggle Button
+        document.getElementById('toggle-sound').addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('sound-icon');
+            if (soundEnabled) {
+                icon.className = "fa-solid fa-volume-high text-brand-cyan";
+                playSound('click');
+            } else {
+                icon.className = "fa-solid fa-volume-xmark text-slate-600";
+            }
+        });
+
+        // --- 9. Background Particle FX ---
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = (Math.random() - 0.5) * 0.4;
+                this.speedY = (Math.random() - 0.5) * 0.4;
+                this.color = Math.random() > 0.5 ? '#00f2fe' : '#f72585';
+                this.alpha = Math.random() * 0.5 + 0.1;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+
+                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+                    this.reset();
+                }
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function initCanvas() {
+            resizeCanvas();
+            particles = [];
+            const particleCount = Math.min(Math.floor(window.innerWidth / 15), 70);
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function animateCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateCanvas);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // --- 10. Initialization ---
+        window.onload = function() {
+            setFormDefaults();
+            renderRoster();
+            updateDisplayHeader();
+            updateGoogleCalendarUrl();
+
+            initCanvas();
+            animateCanvas();
+
+            setInterval(updateCountdown, 1000);
+        };
+    </script>
+</body>
+</html>
